@@ -1,0 +1,45 @@
+name: Sync Google Sheets (Daily)
+
+on:
+  schedule:
+    # Runs every day at 06:00 UTC — adjust to your preferred time
+    - cron: "0 6 * * *"
+
+  # Allow manual trigger from the GitHub UI (useful for testing)
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: Run Sheet Sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 30       # Kill the job if it hangs
+
+    steps:
+      # 1. Check out the repository so the runner can find sync_sheets.py
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Set up Python
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # 4. Run the sync script
+      #    Every secret is injected as an environment variable.
+      - name: Run sync_sheets.py
+        env:
+          SOURCE_SPREADSHEET_ID: ${{ secrets.SOURCE_SPREADSHEET_ID }}
+          DEST_SPREADSHEET_ID:   ${{ secrets.DEST_SPREADSHEET_ID }}
+          GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+          GOOGLE_TOKEN_JSON:       ${{ secrets.GOOGLE_TOKEN_JSON }}
+          SMTP_SENDER:          ${{ secrets.SMTP_SENDER }}
+          SMTP_APP_PASSWORD:    ${{ secrets.SMTP_APP_PASSWORD }}
+          SMTP_RECIPIENT:       ${{ secrets.SMTP_RECIPIENT }}
+          SLEEP_BETWEEN_TABS:   "5"   # seconds between tab syncs (tune as needed)
+        run: python sync_sheets.py
